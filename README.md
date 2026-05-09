@@ -228,7 +228,8 @@ the current dynamic links are:
 
     6. else, gather any keywords found in target/platform descriptor schemes
        i use (e.g. `windows`, `x86_64`, `darwin`, `manylinux`, `musl`) and
-       build a list of platforms, then return any triples that match
+       build a list of platforms, then use the closest matching artifact
+       (that should hopefully be exact)
 
        _why? so i don't have to hardcode links every release_
 
