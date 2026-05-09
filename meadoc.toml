@@ -1,0 +1,4 @@
+[meadoc.generate.external-links]
+"builtins.Exception" = "https://docs.python.org/3/library/exceptions.html"
+"workers.Request" = "https://developers.cloudflare.com/workers/runtime-apis/request/"
+"workers.Response" = "https://developers.cloudflare.com/workers/runtime-apis/response/"
