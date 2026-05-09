@@ -3,9 +3,9 @@
 place your hand in theirs, [and be led into the mist](#where-will-you-take-me)
 
 ```text
-via.joshwel.co/surplus                            # to read
-via.joshwel.co/surplus/files                      # to browse
-git clone https://via.joshwel.co/surplus@future   # to take, and to give
+via.joshwel.co/surplus                     # to read
+via.joshwel.co/surplus/files               # to browse
+git clone https://via.joshwel.co/surplus   # to take, and to give
 ```
 
 ## table of contents
@@ -72,8 +72,7 @@ if these main pages are not available, an error page with a hyperlink to
 go to `/` will be presented to the user
 
 - `/download/[<TARGET>]`  
-  download a digital download artifact of or from the work,
-  which depending on the project may be functionally the same as `/files` and `/download`
+  download a digital download artifact of or from the work
 
   for software projects this is an artifact from the latest release
 
@@ -85,9 +84,7 @@ go to `/` will be presented to the user
   for an explanation of `[<TARGET>]`
 
 - `/download/<TAG>/[<TARGET>]`  
-  download a specific release for the software project,
-  which depending on the project may be functionally the same
-  as `/files` and `/download`
+  download a specific release for the software project
 
   if the tag is incorrect, an error page will be shown with a list of available tags,
   presented as hyperlinks to the correct via.joshwel.co link
@@ -161,7 +158,7 @@ shown as toml to go easy on the eyes
 "/issues"    = "..."
 "/docs"      = "..."
 "/funding"   = "..."
-"/downloads" = "..."
+"/downloads" = "..."    # webpage for humans
 "/download"  = ["..."]  # list of file urls
 "/feed"      = "..."
 # "/latest" is not defined, uses /feed
@@ -172,7 +169,7 @@ repo   = "..."    # will autofill "/", "/issues", "/downloads"
 forges = ["..."]  # in case i host the project on different git forges
 ```
 
-either `"/"` or a key that autofills it, such as repo, is required.
+either `"/"` or a key that autofills it, such as repo, is required
 
 ### example!
 
@@ -210,7 +207,7 @@ the current dynamic links are:
     1. if the work has only a single artifact, redirect to that
 
        ```toml
-       downloads = ["https://example.com/cool_photo.jxl"]
+       download = ["https://example.com/cool_photo.jxl"]
        ```
 
     2. if the selective target is a file name,
