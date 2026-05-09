@@ -3,9 +3,9 @@
 place your hand in theirs, [and be led into the mist](#where-will-you-take-me)
 
 ```text
-via.joshwel.co/surplus											      # to read
-via.joshwel.co/surplus/files									    # to browse
-git clone https://via.joshwel.co/surplus@future		# to take, and to give
+via.joshwel.co/surplus                            # to read
+via.joshwel.co/surplus/files                      # to browse
+git clone https://via.joshwel.co/surplus@future   # to take, and to give
 ```
 
 ## table of contents
