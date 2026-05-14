@@ -1,0 +1,71 @@
+#:schema ./via.schema.json
+
+[projectnamehere]  # becomes via.joshwel.co/projectnamehere
+
+# this is the only mandatory key!
+"/" = "..."
+
+# ...unless you define the `repo` helper key, NOT the `/repo` route
+# with `repo = "https://github.com/markjoshwel/via"`,
+# the following will be defined automatically:
+#    "/"         = "https://github.com/markjoshwel/via"
+#    "/files"    = "https://github.com/markjoshwel/via"
+# and depending on the git forge, the following may also be defined:
+#    "/issues"   = "https://github.com/markjoshwel/via/issues"
+#    "/releases" = "https://github.com/markjoshwel/via/releases"
+#    "/feed"     = "https://github.com/markjoshwel/via/releases.atom"
+# (and of course, user-defined routes will take precedence)
+# repo = "..."
+
+# where to look at files, or a direct download link for one file
+# (pick one, reachable through all: `/files`, `/repo`, `/source`, `/src`, `/assets`, `/browse`, `/stuff`)
+"/files" = "..." 
+
+# --- for software or services ---
+
+# alternative repository links on other git forges
+forge = ["..."]
+
+# bug tracker, issue tracker, or maybe even a status page
+"/issues" = "..."
+
+# documentation or help page, if separate from the landing page or repository
+"/docs" = "..."
+
+# where to support, fund, sponsor, donate, or otherwise throw money
+# (pick one, reachable through all: `/funding`, `/sponsor`, `/donate`)
+"/funding" = "..."
+
+# custom route definition
+# "/hi" = "..."
+
+# --- for works with digital artifacts ---
+
+# human-facing/pretty downloads or releases page for the work
+# (pick one, reachable through all: `/downloads`, `/releases`)
+"/downloads" = "..."
+
+# list of direct download links for:
+# `/download`
+# `/download[/<RELEASE>][/<TARGET>]`
+#           ^^^^^^^^^^^^              selective release query
+#                       ^^^^^^^^^^^   selective target query
+# download a digital download artifact of or from the work
+#   1. if `/files` (or any of its aliases) points to a git forge,
+#        this will be extended with the forge's release artifacts
+#        if any are found through a potential selective target
+#        and/or release query
+#   2. if `artifacts` has only a single entry, `/download[/...]`
+#        will redirect to `artifacts[0]`
+artifacts = ["...", ]
+
+# --- for blogs, collections, catalogues, or adjacent works ---
+
+# rss or atom feed for the blog, catalogue, or an adjacent collection work
+"/feed" = "..."
+
+# latest thing for blogs, catalogues, or an adjacent collection work,
+#   A. optional if `/feed` is defined (will use the latest entry),
+#   B. or define to manually override
+# (pick one, reachable through all: `/latest`, `/newest`, `/recent`)
+"/latest" = "..."

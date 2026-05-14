@@ -1,0 +1,4 @@
+#:schema ./via.schema.json
+
+[via]
+"/assets" = "https://github.com/"

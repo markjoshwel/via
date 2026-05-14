@@ -1,0 +1,216 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://via.joshwel.co/via.schema.json",
+  "title": "via configuration",
+  "description": "schema for via route mappings",
+  "type": "object",
+
+  "patternProperties": {
+    "^[A-Za-z0-9][A-Za-z0-9_-]*$": {
+      "$ref": "#/$defs/work"
+    }
+  },
+
+  "additionalProperties": false,
+
+  "$defs": {
+    "url": {
+      "type": "string",
+      "format": "uri",
+      "minLength": 1
+    },
+
+    "work": {
+      "type": "object",
+
+      "properties": {
+        "/": {
+          "$ref": "#/$defs/url",
+          "description": "canonical landing route for the work"
+        },
+
+        "repo": {
+          "$ref": "#/$defs/url",
+          "description": "helper key for a source repository. not the /repo route alias"
+        },
+
+        "/files": {
+          "$ref": "#/$defs/url",
+          "description": "where to look at files, source, assets, project materials, or one direct download"
+        },
+        "/repo": {
+          "$ref": "#/$defs/url",
+          "description": "alternative key for the `/files` route group of aliases, for a source repository"
+        },
+        "/source": {
+          "$ref": "#/$defs/url",
+          "description": "alternative key for the `/files` route group of aliases, for source code"
+        },
+        "/src": {
+          "$ref": "#/$defs/url",
+          "description": "alternative key for the `/files` route group of aliases, fr src cde"
+        },
+        "/assets": {
+          "$ref": "#/$defs/url",
+          "description": "alternative key for the `/files` route group of aliases, for creative assets or media"
+        },
+        "/browse": {
+          "$ref": "#/$defs/url",
+          "description": "alternative key for the `/files` route group of aliases, but as an action"
+        },
+        "/stuff": {
+          "$ref": "#/$defs/url",
+          "description": "alternative key for the `/files` route group of aliases, for humans"
+        },
+
+        "/issues": {
+          "$ref": "#/$defs/url",
+          "description": "bug tracker, issue tracker, or maybe even a status page"
+        },
+
+        "/docs": {
+          "$ref": "#/$defs/url",
+          "description": "documentation or help page, if separate from the landing page or repository"
+        },
+
+        "/funding": {
+          "$ref": "#/$defs/url",
+          "description": "where to support, fund, sponsor, donate, or otherwise throw money at the work"
+        },
+        "/sponsor": {
+          "$ref": "#/$defs/url",
+          "description": "alternative key for the `/funding` route group of aliases"
+        },
+        "/donate": {
+          "$ref": "#/$defs/url",
+          "description": "alternative key for the `/funding` route group of aliases"
+        },
+
+        "/downloads": {
+          "$ref": "#/$defs/url",
+          "description": "human-facing/pretty downloads or releases page for the work"
+        },
+        "/releases": {
+          "$ref": "#/$defs/url",
+          "description": "alternative key for the `/downloads` route group of aliases"
+        },
+
+        "artifacts": {
+          "type": "array",
+          "description": "direct download links used by the dynamic /download route",
+          "items": {
+            "$ref": "#/$defs/url"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+
+        "/feed": {
+          "$ref": "#/$defs/url",
+          "description": "rss or atom feed for the blog, catalogue, or an adjacent collection work"
+        },
+
+        "/latest": {
+          "$ref": "#/$defs/url",
+          "description": "latest thing for blogs, catalogues, or an adjacent collection work"
+        },
+        "/newest": {
+          "$ref": "#/$defs/url",
+          "description": "alternative key for the `/latest` route group of aliases"
+        },
+        "/recent": {
+          "$ref": "#/$defs/url",
+          "description": "alternative key for the `/latest` route group of aliases"
+        }
+      },
+
+      "patternProperties": {
+        "^/[A-Za-z0-9][A-Za-z0-9_./-]*$": {
+          "$ref": "#/$defs/url",
+          "description": "custom route"
+        }
+      },
+
+      "additionalProperties": false,
+
+      "allOf": [
+        {
+          "description": "define either / or the repo helper key",
+          "anyOf": [
+            {
+              "required": ["/"]
+            },
+            {
+              "required": ["repo"]
+            }
+          ]
+        },
+
+        {
+          "description": "only one `/files` route-group key may be defined",
+          "not": {
+            "anyOf": [
+              { "required": ["/files", "/repo"] },
+              { "required": ["/files", "/source"] },
+              { "required": ["/files", "/src"] },
+              { "required": ["/files", "/assets"] },
+              { "required": ["/files", "/browse"] },
+              { "required": ["/files", "/stuff"] },
+              { "required": ["/repo", "/source"] },
+              { "required": ["/repo", "/src"] },
+              { "required": ["/repo", "/assets"] },
+              { "required": ["/repo", "/browse"] },
+              { "required": ["/repo", "/stuff"] },
+              { "required": ["/source", "/src"] },
+              { "required": ["/source", "/assets"] },
+              { "required": ["/source", "/browse"] },
+              { "required": ["/source", "/stuff"] },
+              { "required": ["/src", "/assets"] },
+              { "required": ["/src", "/browse"] },
+              { "required": ["/src", "/stuff"] },
+              { "required": ["/assets", "/browse"] },
+              { "required": ["/assets", "/stuff"] },
+              { "required": ["/browse", "/stuff"] }
+            ]
+          }
+        },
+
+        {
+          "description": "only one `/funding` route-group key may be defined",
+          "not": {
+            "anyOf": [
+              { "required": ["/funding", "/sponsor"] },
+              { "required": ["/funding", "/donate"] },
+              { "required": ["/sponsor", "/donate"] }
+            ]
+          }
+        },
+
+        {
+          "description": "only one `/downloads` route-group key may be defined",
+          "not": {
+            "required": ["/downloads", "/releases"]
+          }
+        },
+
+        {
+          "description": "only one `/latest` route-group key may be defined",
+          "not": {
+            "anyOf": [
+              { "required": ["/latest", "/newest"] },
+              { "required": ["/latest", "/recent"] },
+              { "required": ["/newest", "/recent"] }
+            ]
+          }
+        },
+
+        {
+          "description": "/download is owned by the resolver. don't define it here",
+          "not": {
+            "required": ["/download"]
+          }
+        }
+      ]
+    }
+  }
+}
