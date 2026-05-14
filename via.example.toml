@@ -24,7 +24,7 @@
 # --- for software or services ---
 
 # alternative repository links on other git forges
-forge = ["..."]
+forges = ["..."]
 
 # bug tracker, issue tracker, or maybe even a status page
 "/issues" = "..."
@@ -39,7 +39,7 @@ forge = ["..."]
 # custom route definition
 # "/hi" = "..."
 
-# --- for works with digital artifacts ---
+# --- for works with digital artefacts ---
 
 # human-facing/pretty downloads or releases page for the work
 # (pick one, reachable through all: `/downloads`, `/releases`)
@@ -50,9 +50,9 @@ forge = ["..."]
 # `/download[/<RELEASE>][/<TARGET>]`
 #           ^^^^^^^^^^^^              selective release query
 #                       ^^^^^^^^^^^   selective target query
-# download a digital download artifact of or from the work
+# download a digital download artefact of or from the work
 #   1. if `/files` (or any of its aliases) points to a git forge,
-#        this will be extended with the forge's release artifacts
+#        this will be extended with the forge's release artefacts
 #        if any are found through a potential selective target
 #        and/or release query
 #   2. if `artifacts` has only a single entry, `/download[/...]`
