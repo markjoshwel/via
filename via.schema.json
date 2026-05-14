@@ -26,17 +26,26 @@
       "properties": {
         "/": {
           "$ref": "#/$defs/url",
-          "description": "canonical landing route for the work"
+          "description": "canonical landing route for the work: dedicated web page if available, else the repo for software projects"
         },
 
         "repo": {
           "$ref": "#/$defs/url",
           "description": "helper key for a source repository. not the /repo route alias"
         },
+        "forges": {
+          "type": "array",
+          "description": "alternative repository links on other git forges",
+          "items": {
+            "$ref": "#/$defs/url"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
 
         "/files": {
           "$ref": "#/$defs/url",
-          "description": "where to look at files, source, assets, project materials, or one direct download"
+          "description": "where to look at files, source code, media assets, project materials, or a direct download link for single-file works"
         },
         "/repo": {
           "$ref": "#/$defs/url",
@@ -65,7 +74,7 @@
 
         "/issues": {
           "$ref": "#/$defs/url",
-          "description": "bug tracker, issue tracker, or maybe even a status page"
+          "description": "the issue or bug tracker page for the usually-software project, or something adjacent like a status page for a service"
         },
 
         "/docs": {
