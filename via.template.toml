@@ -1,4 +1,19 @@
 #:schema ./via.schema.json
 
-[via]
-"/assets" = "https://github.com/"
+[projectnamehere]  # becomes via.joshwel.co/projectnamehere
+"/" = "..."
+
+"/issues" = "..."
+"/docs" = "..."
+"/funding" = "..."
+
+"/files" = "..." 
+"/downloads" = "..."
+artifacts = ["...", ]
+
+"/feed" = "..."
+"/latest" = "..."
+
+# or:
+# repo = "..."
+# forges = ["..."]
