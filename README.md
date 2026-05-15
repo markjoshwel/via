@@ -372,6 +372,7 @@ the via package is also a command runner for common tasks:
 | setup        | `uv sync`              |                                  |
 | self-check   | `uv run via selfcheck` | (basedpyright, ruff, mypy)       |
 | config check | `uv run via check`     | (config validation)              |
+| config sync  | `uv run via sync`      | (sync `via.toml` into entrypoint) |
 | deployment   | `uv run via deploy`    | `uv run pywrangler deploy`       |
 | development  | `uv run via dev`       | `uv run pywrangler dev`          |
 
