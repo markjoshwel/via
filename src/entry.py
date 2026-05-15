@@ -34,21 +34,21 @@ HTML: Final[str] = """<!DOCTYPE html>
 </body>
 </html>"""
 
-CONFIG_PATHS: Final[tuple[Path, ...]] = (
-    Path("via.toml"),
-    Path(__file__).parent.parent / "via.toml",
-)
 CONFIG_TOML: Final[str] = """
+#:schema ./via.schema.json
+
+# my babies
+
 [surplus]
 "/"        = "https://surplus.joshwel.co"
-repo       = "https://github.com/markjoshwel/surplus"
-"/docs"       = "https://surplus.joshwel.co/"
-forges     = ["https://forge.joshwel.co/mark/surplus"]
+"/docs"    = "https://surplus.joshwel.co/"
 "/funding" = "https://links.joshwel.co/donate"
+repo       = "https://github.com/markjoshwel/surplus"
+forges     = ["https://forge.joshwel.co/mark/surplus"]
 
-[colourmeok]
-repo      = "https://forge.joshwel.co/mark/colourmeok"
-artifacts = ["https://forge.joshwel.co/mark/colourmeok/releases/download/vrelease/ColourMeOK.zip"]
+[tomlantic]
+"/funding" = "https://links.joshwel.co/donate"
+repo = "https://github.com/markjoshwel/tomlantic"
 
 [mulipea]
 "/" = "https://gist.github.com/markjoshwel/f4fca0427ef98dd4be397acd6c6086d9"
@@ -60,17 +60,38 @@ artifacts = ["https://forge.joshwel.co/mark/colourmeok/releases/download/vreleas
 repo = "https://github.com/markjoshwel/SideStepper"
 forges = ["https://forge.joshwel.co/mark/sidestepper"]
 
+# school stuff (immersive media)
+
+[colourmeok]
+repo      = "https://github.com/markjoshwel/ColourMeOK"
+artifacts = ["https://github.com/markjoshwel/ColourMeOK/releases/download/vrelease/ColourMeOK-v3.zip"]
+
+[pokkat]
+repo = "https://github.com/markjoshwel/pokkat"
+
+[alookingglass]
+repo = "https://github.com/markjoshwel/sota32"
+
+[id-asg1]
+"/" = "https://markjoshwel.github.io/id-asg1/"
+
+# secondary school stuff
+
+[portfolio-eae]
+"/" = "https://markjoshwel.github.io/portfolio-eae/"
+
+[hounds]
+repo = "https://github.com/markjoshwel/hounds"
+
+# experiments
+
 [sinsandvirtues]
 "/" = "https://github.com/markjoshwel/Depot/tree/main/sinsandvirtues"
 
 [irodorio4]
 "/" = "https://github.com/markjoshwel/Depot/tree/main/irodorio4"
 
-[pokkat]
-repo = "https://forge.joshwel.co/mark/pokkat"
-
-[alookingglass]
-repo = "https://forge.joshwel.co/mark/sota32/"
+# vibecoded tools and experiments
 
 [raiseattention]
 repo = "https://github.com/markjoshwel/RaiseAttention"
@@ -81,20 +102,8 @@ repo = "https://github.com/markjoshwel/mares"
 [meadow]
 repo = "https://github.com/markjoshwel/meadow"
 
-[tomlantic]
-repo = "https://github.com/markjoshwel/tomlantic"
-
 [via]
 repo = "https://github.com/markjoshwel/via"
-
-[hounds]
-repo = "https://github.com/markjoshwel/hounds"
-
-[portfolio-eae]
-"/" = "https://markjoshwel.github.io/portfolio-eae/"
-
-[id-asg1]
-"/" = "https://markjoshwel.github.io/id-asg1/"
 """
 
 FILES_ALIASES: Final[tuple[str, ...]] = (
@@ -193,26 +202,6 @@ def redirect_response(url: str) -> Response:
     return Response("", headers={"location": url}, status=308)
 
 
-def load_config() -> Config:
-    """
-    load the bundled via configuration
-
-    returns: `Config`
-        parsed TOML configuration
-
-    raises:
-        `FileNotFoundError`
-            no bundled via.toml was found
-    """
-
-    for path in CONFIG_PATHS:
-        if path.exists():
-            with path.open("rb") as file:
-                return coerce_config(cast(dict[object, object], tomllib.load(file)))
-
-    return coerce_config(cast(dict[object, object], tomllib.loads(CONFIG_TOML)))
-
-
 def coerce_config(raw_config: dict[object, object]) -> Config:
     """
     narrow raw TOML data into the supported via config shape
@@ -256,6 +245,11 @@ def coerce_work_config(raw_work: dict[object, object]) -> WorkConfig:
             if all(isinstance(item, str) for item in items):
                 work[key] = cast(list[str], items.copy())
     return work
+
+
+BUNDLED_CONFIG: Final[Config] = coerce_config(
+    cast(dict[object, object], tomllib.loads(CONFIG_TOML))
+)
 
 
 def first_defined(work: WorkConfig | dict[str, str], keys: tuple[str, ...]) -> str | None:
@@ -695,7 +689,7 @@ async def handle_request(request: Request) -> Response:
 
     slug = parts[0].lower()
     route = "/".join(parts[1:])
-    result = await resolve_route(slug, route, load_config(), parsed.query)
+    result = await resolve_route(slug, route, BUNDLED_CONFIG, parsed.query)
 
     if isinstance(result, Response):
         return result

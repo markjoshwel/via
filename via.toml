@@ -1,15 +1,17 @@
 #:schema ./via.schema.json
 
+# my babies
+
 [surplus]
 "/"        = "https://surplus.joshwel.co"
-repo       = "https://github.com/markjoshwel/surplus"
-"/docs"       = "https://surplus.joshwel.co/"
-forges     = ["https://forge.joshwel.co/mark/surplus"]
+"/docs"    = "https://surplus.joshwel.co/"
 "/funding" = "https://links.joshwel.co/donate"
+repo       = "https://github.com/markjoshwel/surplus"
+forges     = ["https://forge.joshwel.co/mark/surplus"]
 
-[colourmeok]
-repo      = "https://forge.joshwel.co/mark/colourmeok"
-artifacts = ["https://forge.joshwel.co/mark/colourmeok/releases/download/vrelease/ColourMeOK.zip"]
+[tomlantic]
+"/funding" = "https://links.joshwel.co/donate"
+repo = "https://github.com/markjoshwel/tomlantic"
 
 [mulipea]
 "/" = "https://gist.github.com/markjoshwel/f4fca0427ef98dd4be397acd6c6086d9"
@@ -21,17 +23,38 @@ artifacts = ["https://forge.joshwel.co/mark/colourmeok/releases/download/vreleas
 repo = "https://github.com/markjoshwel/SideStepper"
 forges = ["https://forge.joshwel.co/mark/sidestepper"]
 
+# school stuff (immersive media)
+
+[colourmeok]
+repo      = "https://github.com/markjoshwel/ColourMeOK"
+artifacts = ["https://github.com/markjoshwel/ColourMeOK/releases/download/vrelease/ColourMeOK-v3.zip"]
+
+[pokkat]
+repo = "https://github.com/markjoshwel/pokkat"
+
+[alookingglass]
+repo = "https://github.com/markjoshwel/sota32"
+
+[id-asg1]
+"/" = "https://markjoshwel.github.io/id-asg1/"
+
+# secondary school stuff
+
+[portfolio-eae]
+"/" = "https://markjoshwel.github.io/portfolio-eae/"
+
+[hounds]
+repo = "https://github.com/markjoshwel/hounds"
+
+# experiments
+
 [sinsandvirtues]
 "/" = "https://github.com/markjoshwel/Depot/tree/main/sinsandvirtues"
 
 [irodorio4]
 "/" = "https://github.com/markjoshwel/Depot/tree/main/irodorio4"
 
-[pokkat]
-repo = "https://forge.joshwel.co/mark/pokkat"
-
-[alookingglass]
-repo = "https://forge.joshwel.co/mark/sota32/"
+# vibecoded tools and experiments
 
 [raiseattention]
 repo = "https://github.com/markjoshwel/RaiseAttention"
@@ -42,17 +65,5 @@ repo = "https://github.com/markjoshwel/mares"
 [meadow]
 repo = "https://github.com/markjoshwel/meadow"
 
-[tomlantic]
-repo = "https://github.com/markjoshwel/tomlantic"
-
 [via]
 repo = "https://github.com/markjoshwel/via"
-
-[hounds]
-repo = "https://github.com/markjoshwel/hounds"
-
-[portfolio-eae]
-"/" = "https://markjoshwel.github.io/portfolio-eae/"
-
-[id-asg1]
-"/" = "https://markjoshwel.github.io/id-asg1/"
