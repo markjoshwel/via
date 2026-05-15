@@ -365,11 +365,15 @@ the current dynamic links are:
 
 this is a **python** cloudflare worker. you will need `node`, `npm`, and `uv`.
 
-| to do       | you should run             | or               |
-| ----------- | -------------------------- | ---------------- |
-| setup       | `uv sync`                  |                  |
-| deployment  | `uv run pywrangler deploy` | `npm run deploy` |
-| development | `uv run pywrangler dev`    | `npm run dev`    |
+the via package is also a command runner for common tasks:
+
+| to do        | you should run         | which in turn runs               | 
+| ------------ | ---------------------- | -------------------------------- |
+| setup        | `uv sync`              |                                  |
+| self-check   | `uv run via selfcheck` | (basedpyright, ruff, mypy)       |
+| config check | `uv run via check`     | (config validation)              |
+| deployment   | `uv run via deploy`    | `uv run pywrangler deploy`       |
+| development  | `uv run via dev`       | `uv run pywrangler dev`          |
 
 ## licensing
 
