@@ -3,12 +3,16 @@ via: cloudflare workers entrypoint
   SPDX-License-Identifier: Unlicense OR 0BSD
 """
 
+from collections.abc import Awaitable, Callable
+from difflib import get_close_matches
 from html import escape
 from http import HTTPMethod
+import inspect
 from pathlib import Path
 import tomllib
-from typing import Final, NamedTuple, cast
-from urllib.parse import urlparse
+from typing import Final, NamedTuple, TypeAlias, cast
+from urllib.parse import urljoin, urlparse
+from xml.etree import ElementTree
 
 from workers import Request, Response, WorkerEntrypoint
 from workers._workers import fetch as cf_fetch  # pyright: ignore[reportUnknownVariableType]
@@ -104,6 +108,12 @@ repo = "https://github.com/markjoshwel/meadow"
 
 [via]
 repo = "https://github.com/markjoshwel/via"
+
+# blogs/collections/catalogues
+
+[blog]
+"/" = "https://majo.bearblog.dev/"
+"/feed" = "https://majo.bearblog.dev/feed/"
 """
 
 FILES_ALIASES: Final[tuple[str, ...]] = (
@@ -162,6 +172,22 @@ class RouteResult(NamedTuple):
 ConfigValue = str | list[str]
 WorkConfig = dict[str, ConfigValue]
 Config = dict[str, WorkConfig]
+JsonObject: TypeAlias = dict[str, object]
+
+
+class DownloadRequest(NamedTuple):
+    """
+    parsed dynamic download route
+
+    attributes:
+        `release: str | None`
+            requested release tag, if present
+        `target: str | None`
+            requested artefact target, if present
+    """
+
+    release: str | None = None
+    target: str | None = None
 
 
 def html_response(title: str, body: str, status: int) -> Response:
@@ -252,7 +278,9 @@ BUNDLED_CONFIG: Final[Config] = coerce_config(
 )
 
 
-def first_defined(work: WorkConfig | dict[str, str], keys: tuple[str, ...]) -> str | None:
+def first_defined(
+    work: WorkConfig | dict[str, str], keys: tuple[str, ...]
+) -> str | None:
     """
     return the first string value for the requested keys
 
@@ -383,6 +411,75 @@ def repo_candidates(work: WorkConfig) -> list[str]:
     return deduplicated
 
 
+def repo_path_parts(repo: str) -> tuple[str, str] | None:
+    """
+    return owner and repository path parts for a forge repository URL
+
+    arguments:
+        `repo: str`
+            repository URL
+
+    returns: `tuple[str, str] | None`
+        owner and repository name when the URL is usable
+    """
+
+    path_parts = [part for part in urlparse(repo).path.split("/") if part]
+    if len(path_parts) < 2:
+        return None
+    return path_parts[0], path_parts[1]
+
+
+def release_api_url(repo: str, release: str | None) -> str | None:
+    """
+    return the release API URL for a supported forge
+
+    arguments:
+        `repo: str`
+            repository URL
+        `release: str | None`
+            requested release tag, if present
+
+    returns: `str | None`
+        release API URL, if the forge is recognised
+    """
+
+    repo_parts = repo_path_parts(repo)
+    if repo_parts is None:
+        return None
+
+    owner, name = repo_parts
+    parsed = urlparse(repo)
+    kind = forge_kind(repo)
+    if kind == "github":
+        base = f"https://api.github.com/repos/{owner}/{name}/releases"
+    elif kind == "forgejo":
+        base = f"{parsed.scheme}://{parsed.netloc}/api/v1/repos/{owner}/{name}/releases"
+    else:
+        return None
+
+    if release is None:
+        return f"{base}/latest"
+    return f"{base}/tags/{release}"
+
+
+def releases_api_url(repo: str) -> str | None:
+    """
+    return the releases API URL for a supported forge
+
+    arguments:
+        `repo: str`
+            repository URL
+
+    returns: `str | None`
+        releases API URL, if the forge is recognised
+    """
+
+    latest_url = release_api_url(repo, None)
+    if latest_url is None:
+        return None
+    return latest_url.removesuffix("/latest")
+
+
 async def repo_is_reachable(repo: str) -> bool:
     """
     check whether a repository URL appears reachable
@@ -428,6 +525,180 @@ async def choose_repo(work: WorkConfig) -> str | None:
             return candidate
 
     return candidates[0]
+
+
+async def response_json(response: Response) -> object:
+    """
+    read a Worker response body as JSON
+
+    arguments:
+        `response: Response`
+            fetch response
+
+    returns: `object`
+        decoded JSON value
+    """
+
+    json_method = cast(Callable[[], object], getattr(response, "json"))
+    value = json_method()
+    if inspect.isawaitable(value):
+        value = await cast(Awaitable[object], value)
+    return value
+
+
+async def response_text(response: Response) -> str:
+    """
+    read a Worker response body as text
+
+    arguments:
+        `response: Response`
+            fetch response
+
+    returns: `str`
+        response body text
+    """
+
+    text_method = cast(Callable[[], object], getattr(response, "text"))
+    value = text_method()
+    if inspect.isawaitable(value):
+        value = await cast(Awaitable[object], value)
+    return value if isinstance(value, str) else ""
+
+
+def release_artifacts_from_json(value: object) -> list[str]:
+    """
+    extract artefact download URLs from a forge release response
+
+    arguments:
+        `value: object`
+            decoded release API response
+
+    returns: `list[str]`
+        artefact download URLs
+    """
+
+    if not isinstance(value, dict):
+        return []
+
+    release = cast(JsonObject, value)
+    raw_assets = release.get("assets")
+    if not isinstance(raw_assets, list):
+        return []
+
+    assets = cast(list[object], raw_assets)
+    artifacts: list[str] = []
+    for asset in assets:
+        if not isinstance(asset, dict):
+            continue
+
+        raw_asset = cast(JsonObject, asset)
+        download_url = raw_asset.get("browser_download_url")
+        if not isinstance(download_url, str):
+            download_url = raw_asset.get("download_url")
+
+        if isinstance(download_url, str):
+            artifacts.append(download_url)
+
+    return artifacts
+
+
+async def release_artifacts(repo: str, release: str | None) -> list[str]:
+    """
+    fetch release artefact URLs from a supported forge
+
+    arguments:
+        `repo: str`
+            repository URL
+        `release: str | None`
+            requested release tag, if present
+
+    returns: `list[str]`
+        release artefact URLs
+    """
+
+    api_url = release_api_url(repo, release)
+    if api_url is None:
+        return []
+
+    try:
+        response: Response = await cf_fetch(
+            api_url,
+            method=HTTPMethod.GET,
+            headers={
+                "accept": "application/json",
+                "user-agent": "via",
+            },
+        )
+        status = getattr(response, "status", 0)
+        if not isinstance(status, int) or not 200 <= status < 300:
+            return []
+
+        return release_artifacts_from_json(await response_json(response))
+    except Exception:
+        return []
+
+
+def release_tags_from_json(value: object) -> list[str]:
+    """
+    extract release tags from a forge releases response
+
+    arguments:
+        `value: object`
+            decoded releases API response
+
+    returns: `list[str]`
+        release tags
+    """
+
+    if not isinstance(value, list):
+        return []
+
+    releases = cast(list[object], value)
+    tags: list[str] = []
+    for release in releases:
+        if not isinstance(release, dict):
+            continue
+
+        raw_release = cast(JsonObject, release)
+        tag = raw_release.get("tag_name")
+        if isinstance(tag, str):
+            tags.append(tag)
+
+    return tags
+
+
+async def release_tags(repo: str) -> list[str]:
+    """
+    fetch release tags from a supported forge
+
+    arguments:
+        `repo: str`
+            repository URL
+
+    returns: `list[str]`
+        release tags
+    """
+
+    api_url = releases_api_url(repo)
+    if api_url is None:
+        return []
+
+    try:
+        response: Response = await cf_fetch(
+            api_url,
+            method=HTTPMethod.GET,
+            headers={
+                "accept": "application/json",
+                "user-agent": "via",
+            },
+        )
+        status = getattr(response, "status", 0)
+        if not isinstance(status, int) or not 200 <= status < 300:
+            return []
+
+        return release_tags_from_json(await response_json(response))
+    except Exception:
+        return []
 
 
 def with_selected_repo(work: WorkConfig, repo: str | None) -> WorkConfig:
@@ -546,7 +817,57 @@ def match_artifact(artifacts: list[str], target: str | None) -> str | None:
     return None
 
 
-def artifact_links(slug: str, artifacts: list[str]) -> str:
+def parse_download_route(route: str) -> DownloadRequest:
+    """
+    parse release and target selectors from a dynamic download route
+
+    arguments:
+        `route: str`
+            normalised `/download` route
+
+    returns: `DownloadRequest`
+        parsed release and target selectors
+    """
+
+    parts = [part for part in route.removeprefix("/download").split("/") if part]
+    if not parts:
+        return DownloadRequest()
+
+    if len(parts) == 1:
+        part = parts[0]
+        if "." in part:
+            return DownloadRequest(target=part)
+        return DownloadRequest(release=part)
+
+    return DownloadRequest(release=parts[0], target=parts[-1])
+
+
+def merge_artifacts(*artifact_groups: list[str]) -> list[str]:
+    """
+    merge artefact URL groups without duplicates
+
+    arguments:
+        `*artifact_groups: list[str]`
+            artefact URL groups in preference order
+
+    returns: `list[str]`
+        deduplicated artefact URLs
+    """
+
+    artifacts: list[str] = []
+    for group in artifact_groups:
+        for artifact in group:
+            if artifact not in artifacts:
+                artifacts.append(artifact)
+    return artifacts
+
+
+def artifact_links(
+    slug: str,
+    artifacts: list[str],
+    release: str | None = None,
+    target: str | None = None,
+) -> str:
     """
     render available artifacts as a link list
 
@@ -555,6 +876,10 @@ def artifact_links(slug: str, artifacts: list[str]) -> str:
             work slug
         `artifacts: list[str]`
             artifact URLs
+        `release: str | None`
+            release tag to preserve in generated links
+        `target: str | None`
+            unmatched target, if present
 
     returns: `str`
         HTML list fragment
@@ -566,12 +891,201 @@ def artifact_links(slug: str, artifacts: list[str]) -> str:
     items: list[str] = []
     for artifact in artifacts:
         name = filename(artifact)
-        href = f"/{slug}/download/{name}"
+        href = (
+            f"/{slug}/download/{release}/{name}"
+            if release
+            else f"/{slug}/download/{name}"
+        )
         items.append(f'<li><a href="{escape(href)}">{escape(name)}</a></li>')
-    return f"<p>available artefacts:</p><ul>{''.join(items)}</ul>"
+
+    closest = ""
+    if target is not None:
+        filenames = [filename(artifact) for artifact in artifacts]
+        matches = get_close_matches(target, filenames, n=1)
+        if matches:
+            match = matches[0]
+            href = (
+                f"/{slug}/download/{release}/{match}"
+                if release
+                else f"/{slug}/download/{match}"
+            )
+            closest = (
+                f'<p>closest match: <a href="{escape(href)}">{escape(match)}</a></p>'
+            )
+
+    return f"{closest}<p>available artefacts:</p><ul>{''.join(items)}</ul>"
 
 
-def resolve_download(slug: str, work: WorkConfig, route: str) -> RouteResult | Response:
+def release_links(slug: str, releases: list[str]) -> str:
+    """
+    render available releases as a link list
+
+    arguments:
+        `slug: str`
+            work slug
+        `releases: list[str]`
+            release tags
+
+    returns: `str`
+        HTML list fragment
+    """
+
+    if not releases:
+        return "<p>no releases are known for this work.</p>"
+
+    items: list[str] = []
+    for release in releases:
+        href = f"/{slug}/download/{release}"
+        items.append(f'<li><a href="{escape(href)}">{escape(release)}</a></li>')
+    return f"<p>available releases:</p><ul>{''.join(items)}</ul>"
+
+
+def element_name(element: ElementTree.Element) -> str:
+    """
+    return an XML element name without its namespace
+
+    arguments:
+        `element: ElementTree.Element`
+            XML element
+
+    returns: `str`
+        local element name
+    """
+
+    return element.tag.rsplit("}", 1)[-1].lower()
+
+
+def child_text(element: ElementTree.Element, name: str) -> str | None:
+    """
+    return the first direct child text value by local element name
+
+    arguments:
+        `element: ElementTree.Element`
+            parent XML element
+        `name: str`
+            local child element name
+
+    returns: `str | None`
+        stripped text value, if present
+    """
+
+    for child in element:
+        if element_name(child) != name:
+            continue
+
+        text = child.text
+        if text is not None and text.strip():
+            return text.strip()
+
+    return None
+
+
+def atom_entry_link(entry: ElementTree.Element) -> str | None:
+    """
+    return the preferred URL from an Atom entry
+
+    arguments:
+        `entry: ElementTree.Element`
+            Atom entry element
+
+    returns: `str | None`
+        entry URL, if present
+    """
+
+    fallback: str | None = None
+    for child in entry:
+        if element_name(child) != "link":
+            continue
+
+        href = child.attrib.get("href")
+        if href is None or not href.strip():
+            continue
+
+        href = href.strip()
+        if child.attrib.get("rel", "alternate") == "alternate":
+            return href
+        fallback = fallback or href
+
+    return fallback or child_text(entry, "id")
+
+
+def latest_entry_url(feed_xml: str, feed_url: str) -> str | None:
+    """
+    return the URL for the first RSS item or Atom entry
+
+    arguments:
+        `feed_xml: str`
+            feed XML document
+        `feed_url: str`
+            source feed URL, used for resolving relative links
+
+    returns: `str | None`
+        latest entry URL, if one can be found
+    """
+
+    try:
+        root = ElementTree.fromstring(feed_xml)
+    except ElementTree.ParseError:
+        return None
+
+    for element in root.iter():
+        name = element_name(element)
+        if name == "item":
+            link = child_text(element, "link") or child_text(element, "guid")
+            return urljoin(feed_url, link) if link is not None else None
+        if name == "entry":
+            link = atom_entry_link(element)
+            return urljoin(feed_url, link) if link is not None else None
+
+    return None
+
+
+async def resolve_latest(routes: dict[str, str]) -> RouteResult | Response:
+    """
+    resolve `/latest` from a configured RSS or Atom feed
+
+    arguments:
+        `routes: dict[str, str]`
+            expanded route mapping
+
+    returns: `RouteResult | Response`
+        latest entry redirect or rendered error response
+    """
+
+    feed_url = routes.get("/feed")
+    if feed_url is None:
+        return html_response(
+            "via does not know the latest thing.",
+            "<p>no feed is known for this work.</p>",
+            404,
+        )
+
+    try:
+        response: Response = await cf_fetch(
+            feed_url,
+            method=HTTPMethod.GET,
+            headers={"user-agent": "via"},
+        )
+        status = getattr(response, "status", 0)
+        if not isinstance(status, int) or not 200 <= status < 300:
+            raise ValueError(f"feed returned HTTP {status}")
+
+        latest_url = latest_entry_url(await response_text(response), feed_url)
+        if latest_url is not None:
+            return RouteResult(latest_url)
+    except Exception:
+        pass
+
+    fallback = routes.get("/")
+    body = "<p>the latest feed entry could not be resolved.</p>"
+    if fallback is not None:
+        body += f'<p>you may be led back to <a href="{escape(fallback)}">the work</a>, if you wish.</p>'
+    return html_response("via does not know the latest thing.", body, 404)
+
+
+async def resolve_download(
+    slug: str, work: WorkConfig, route: str
+) -> RouteResult | Response:
     """
     resolve a `/download` route
 
@@ -587,17 +1101,39 @@ def resolve_download(slug: str, work: WorkConfig, route: str) -> RouteResult | R
         redirect target or rendered error response
     """
 
-    artifacts = artifacts_for(work)
-    parts = [part for part in route.removeprefix("/download").split("/") if part]
-    target = parts[-1] if parts else None
-    matched = match_artifact(artifacts, target)
+    request = parse_download_route(route)
+    configured_artifacts = artifacts_for(work)
+    matched = match_artifact(configured_artifacts, request.target)
 
     if matched is not None:
         return RouteResult(matched)
 
+    selected_repo = await choose_repo(work)
+    discovered_artifacts = (
+        await release_artifacts(selected_repo, request.release)
+        if selected_repo is not None
+        else []
+    )
+    artifacts = merge_artifacts(configured_artifacts, discovered_artifacts)
+    matched = match_artifact(artifacts, request.target)
+
+    if matched is not None:
+        return RouteResult(matched)
+
+    if (
+        selected_repo is not None
+        and request.release is not None
+        and not discovered_artifacts
+    ):
+        return html_response(
+            "via does not know this release.",
+            release_links(slug, await release_tags(selected_repo)),
+            404,
+        )
+
     return html_response(
         "via does not know which artefact you want.",
-        artifact_links(slug, artifacts),
+        artifact_links(slug, artifacts, request.release, request.target),
         404,
     )
 
@@ -635,7 +1171,7 @@ async def resolve_route(
 
     route = normalise_route(route)
     if route == "/download" or route.startswith("/download/"):
-        return resolve_download(slug, work, route)
+        return await resolve_download(slug, work, route)
 
     selected_repo = await choose_repo(work)
     selected_work = with_selected_repo(work, selected_repo)
@@ -643,6 +1179,9 @@ async def resolve_route(
     destination = routes.get(route)
     if destination is not None:
         return RouteResult(destination)
+
+    if route in LATEST_ALIASES:
+        return await resolve_latest(routes)
 
     if selected_repo is not None and route != "/":
         destination = f"{selected_repo.rstrip('/')}{route}"

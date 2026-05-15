@@ -67,3 +67,9 @@ repo = "https://github.com/markjoshwel/meadow"
 
 [via]
 repo = "https://github.com/markjoshwel/via"
+
+# blogs/collections/catalogues
+
+[blog]
+"/" = "https://majo.bearblog.dev/"
+"/feed" = "https://majo.bearblog.dev/feed/"
