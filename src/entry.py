@@ -11,7 +11,7 @@ import inspect
 from pathlib import Path
 import tomllib
 from typing import Final, NamedTuple, TypeAlias, cast
-from urllib.parse import urljoin, urlparse
+from urllib.parse import quote, urljoin, urlparse
 from xml.etree import ElementTree
 
 from workers import Request, Response, WorkerEntrypoint
@@ -155,6 +155,7 @@ FILES_ALIASES: Final[tuple[str, ...]] = (
 FUNDING_ALIASES: Final[tuple[str, ...]] = ("/funding", "/sponsor", "/donate")
 DOWNLOADS_ALIASES: Final[tuple[str, ...]] = ("/downloads", "/releases")
 LATEST_ALIASES: Final[tuple[str, ...]] = ("/latest", "/newest", "/recent")
+LATEST_RELEASE_SELECTOR: Final[str] = "latest"
 ROUTE_GROUPS: Final[tuple[tuple[str, ...], ...]] = (
     FILES_ALIASES,
     FUNDING_ALIASES,
@@ -489,6 +490,44 @@ def release_api_url(repo: str, release: str | None) -> str | None:
     return f"{base}/tags/{release}"
 
 
+def direct_release_download_url(
+    repo: str, release: str | None, target: str | None
+) -> str | None:
+    """
+    return a direct release asset URL when a forge supports stable download paths
+
+    arguments:
+        `repo: str`
+            repository URL
+        `release: str | None`
+            requested release tag, if present
+        `target: str | None`
+            requested artefact filename, if present
+
+    returns: `str | None`
+        direct release asset URL, if it can be constructed
+    """
+
+    if target is None or forge_kind(repo) != "github":
+        return None
+
+    repo_parts = repo_path_parts(repo)
+    if repo_parts is None:
+        return None
+
+    owner, name = repo_parts
+    quoted_target = quote(target)
+    if release is None:
+        return (
+            f"https://github.com/{owner}/{name}/releases/latest/download/"
+            f"{quoted_target}"
+        )
+    return (
+        f"https://github.com/{owner}/{name}/releases/download/"
+        f"{quote(release)}/{quoted_target}"
+    )
+
+
 def releases_api_url(repo: str) -> str | None:
     """
     return the releases API URL for a supported forge
@@ -663,6 +702,27 @@ async def release_artifacts(repo: str, release: str | None) -> list[str]:
         return release_artifacts_from_json(await response_json(response))
     except Exception:
         return []
+
+
+async def release_artifacts_for(work: WorkConfig, release: str | None) -> list[str]:
+    """
+    fetch release artefact URLs from configured repository candidates
+
+    arguments:
+        `work: WorkConfig`
+            work configuration
+        `release: str | None`
+            requested release tag, if present
+
+    returns: `list[str]`
+        merged release artefact URLs
+    """
+
+    artifact_groups: list[list[str]] = []
+    for repo in repo_candidates(work):
+        artifact_groups.append(await release_artifacts(repo, release))
+
+    return merge_artifacts(*artifact_groups)
 
 
 def release_tags_from_json(value: object) -> list[str]:
@@ -862,9 +922,14 @@ def parse_download_route(route: str) -> DownloadRequest:
 
     if len(parts) == 1:
         part = parts[0]
+        if part.lower() == LATEST_RELEASE_SELECTOR:
+            return DownloadRequest()
         if "." in part:
             return DownloadRequest(target=part)
         return DownloadRequest(release=part)
+
+    if parts[0].lower() == LATEST_RELEASE_SELECTOR:
+        return DownloadRequest(target=parts[-1])
 
     return DownloadRequest(release=parts[0], target=parts[-1])
 
@@ -1135,12 +1200,13 @@ async def resolve_download(
     if matched is not None:
         return RouteResult(matched)
 
+    for repo in repo_candidates(work):
+        direct_url = direct_release_download_url(repo, request.release, request.target)
+        if direct_url is not None:
+            return RouteResult(direct_url)
+
     selected_repo = await choose_repo(work)
-    discovered_artifacts = (
-        await release_artifacts(selected_repo, request.release)
-        if selected_repo is not None
-        else []
-    )
+    discovered_artifacts = await release_artifacts_for(work, request.release)
     artifacts = merge_artifacts(configured_artifacts, discovered_artifacts)
     matched = match_artifact(artifacts, request.target)
 
