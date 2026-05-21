@@ -13,6 +13,12 @@ forges     = ["https://forge.joshwel.co/mark/surplus"]
 "/funding" = "https://links.joshwel.co/donate"
 repo = "https://github.com/markjoshwel/tomlantic"
 
+[speaki]
+repo = "https://github.com/markjoshwel/speakispeak"
+
+[speakispeak]
+repo = "https://github.com/markjoshwel/speakispeak"
+
 [mulipea]
 "/" = "https://gist.github.com/markjoshwel/f4fca0427ef98dd4be397acd6c6086d9"
 
