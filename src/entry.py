@@ -76,8 +76,32 @@ repo = "https://github.com/markjoshwel/pokkat"
 [alookingglass]
 repo = "https://github.com/markjoshwel/sota32"
 
+[mstudent]
+"/" = "https://www.figma.com/design/bcYXLK4ecS84Rr8bn3Evi6/DP-AS1---mStudent?node-id=55-38&t=kWnBLJBY9rzBaWMy-1"
+"/proto" = "https://www.figma.com/proto/bcYXLK4ecS84Rr8bn3Evi6/DP-AS1---mStudent?node-id=55-38&t=kWnBLJBY9rzBaWMy-1"
+
+[requintonway]
+"/" = "https://www.figma.com/design/N0JksoEzhSvyjjf0a0qRuh/Integrated-Project-1---Requinton-Way?node-id=43-2&t=1XKMvlJU43TWbSXI-1"
+"/proto" = "https://www.figma.com/proto/N0JksoEzhSvyjjf0a0qRuh/Integrated-Project-1---Requinton-Way?node-id=43-2&t=1XKMvlJU43TWbSXI-1"
+
+[sandplus]
+"/" = "https://www.figma.com/design/FLuiuJYZCzWp8T7bfMNFyS/proto-sandplus?node-id=0-1&t=MsmQzODPxuF3fr1W-1"
+"/proto" = "https://www.figma.com/proto/FLuiuJYZCzWp8T7bfMNFyS/proto-sandplus?node-id=0-1&t=MsmQzODPxuF3fr1W-1"
+
 [id-asg1]
 "/" = "https://markjoshwel.github.io/id-asg1/"
+
+[krystallandbahl]  # hmm maybe i need an alias key
+"/" = "https://markjoshwel.github.io/id-asg1/"
+
+[cartoongun]
+"/" = "https://www.artstation.com/artwork/kNqX3A"
+
+[mazinger]
+"/" = "https://www.artstation.com/artwork/K3YNN9"
+
+[mazingerz]
+"/" = "https://www.artstation.com/artwork/K3YNN9"
 
 # secondary school stuff
 
@@ -110,6 +134,9 @@ repo = "https://github.com/markjoshwel/meadow"
 repo = "https://github.com/markjoshwel/via"
 
 # blogs/collections/catalogues
+
+[photos]
+"/" = "https://albums.ente.com/?t=3Z53PQNSRC#3iUG1XuBux2JmkPkyjebTWE1Ad1RuWNwshetXNugwY8H"
 
 [blog]
 "/" = "https://majo.bearblog.dev/"
