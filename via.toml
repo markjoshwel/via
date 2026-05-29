@@ -107,6 +107,9 @@ repo = "https://github.com/markjoshwel/via"
 [photos]
 "/" = "https://albums.ente.com/?t=3Z53PQNSRC#3iUG1XuBux2JmkPkyjebTWE1Ad1RuWNwshetXNugwY8H"
 
+[resume]
+"/" = "https://datashower.joshwel.co/public/me/resume.pdf"
+
 [blog]
 "/" = "https://majo.bearblog.dev/"
 "/feed" = "https://majo.bearblog.dev/feed/"
