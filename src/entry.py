@@ -73,7 +73,8 @@ forges = ["https://forge.joshwel.co/mark/sidestepper"]
 # school stuff (immersive media)
 
 [colourmeok]
-repo      = "https://github.com/markjoshwel/ColourMeOK"
+repo      = "https://forge.joshwel.co/mark/colourmeok"
+forges    = ["https://github.com/markjoshwel/colourmeok"]
 artifacts = ["https://github.com/markjoshwel/ColourMeOK/releases/download/vrelease/ColourMeOK-v3.zip"]
 
 [pokkat]
@@ -129,6 +130,9 @@ repo = "https://github.com/markjoshwel/hounds"
 
 [raiseattention]
 repo = "https://github.com/markjoshwel/RaiseAttention"
+
+[reixi]
+repo = "https://github.com/markjoshwel/reixi"
 
 [mares]
 repo = "https://github.com/markjoshwel/mares"
@@ -571,7 +575,7 @@ async def repo_is_reachable(repo: str) -> bool:
             redirect="follow",
         )
         status = getattr(response, "status", 0)
-        return isinstance(status, int) and 200 <= status < 500
+        return isinstance(status, int) and 200 <= status < 400
     except Exception:
         return False
 
