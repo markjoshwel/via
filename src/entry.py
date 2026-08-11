@@ -143,6 +143,12 @@ repo = "https://github.com/markjoshwel/meadow"
 [via]
 repo = "https://github.com/markjoshwel/via"
 
+[soundkeeper]
+repo = "https://github.com/markjoshwel/soundkeeper"
+
+[dva3]
+"/" = "https://pub-4975c8bb4a34485188c2da244cdd8171.r2.dev/index.html"
+
 # blogs/collections/catalogues
 
 [photos]
