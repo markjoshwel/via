@@ -3,14 +3,16 @@ via: cloudflare workers entrypoint
   SPDX-License-Identifier: Unlicense OR 0BSD
 """
 
+from asyncio import create_task, timeout
 from collections.abc import Awaitable, Callable
 from difflib import get_close_matches
 from html import escape
 from http import HTTPMethod
 import inspect
+import json
 from pathlib import Path
 import tomllib
-from typing import Final, NamedTuple, TypeAlias, cast
+from typing import Final, NamedTuple, Protocol, TypeAlias, cast
 from urllib.parse import quote, urljoin, urlparse
 from xml.etree import ElementTree
 
@@ -1370,6 +1372,65 @@ def internal_error_response(exc: Exception) -> Response:
     )
 
 
+def analytics_payload(request: Request, response: Response, domain: str) -> JsonObject | None:
+    """Count successful browser navigation while retaining the actual Via hostname."""
+
+    if not domain or request.method != "GET" or not 200 <= response.status < 400:
+        return None
+    headers = request.headers
+    agent = (headers.get("user-agent") or "").lower()
+    if not agent or any(word in agent for word in (
+        "bot", "spider", "crawler", "preview", "git/", "curl/", "wget/", "python-",
+    )):
+        return None
+    if "text/html" not in (headers.get("accept") or "").lower():
+        return None
+    purpose = " ".join(headers.get(key) or "" for key in ("purpose", "sec-purpose"))
+    if "prefetch" in purpose.lower():
+        return None
+    path = urlparse(request.url).path.rstrip("/")
+    if path.endswith(("/feed", "/rss", "/atom", "/info/refs", "/git-upload-pack")):
+        return None
+    return {
+        "name": "pageview",
+        "domain": domain,
+        "url": request.url,
+        "referrer": headers.get("referer") or "",
+    }
+
+
+async def send_analytics(request: Request, payload: JsonObject, endpoint: str) -> None:
+    """Deliver best-effort analytics without holding up or failing a redirect."""
+
+    headers = {
+        "content-type": "application/json",
+        "user-agent": request.headers.get("user-agent") or "",
+    }
+    client_ip = request.headers.get("cf-connecting-ip")
+    if client_ip:
+        headers["x-forwarded-for"] = client_ip
+        # Same-zone Worker subrequests derive CF-Connecting-IP from X-Real-IP.
+        headers["x-real-ip"] = client_ip
+    try:
+        async with timeout(3):
+            result = await cf_fetch(
+                endpoint, method=HTTPMethod.POST, headers=headers, body=json.dumps(payload),
+            )
+            if result.status >= 400:
+                print(f"via analytics returned HTTP {result.status}")
+    except Exception as exc:
+        print(f"via analytics unavailable: {type(exc).__name__}")
+
+
+class AnalyticsEnvironment(Protocol):
+    PLAUSIBLE_DOMAIN: str
+    PLAUSIBLE_ENDPOINT: str
+
+
+class BackgroundContext(Protocol):
+    def waitUntil(self, task: Awaitable[object]) -> None: ...
+
+
 class Default(WorkerEntrypoint):
     """
     link-rerouting cloudflare worker entrypoint for via
@@ -1380,6 +1441,9 @@ class Default(WorkerEntrypoint):
         `async def fetch(self, request: Request)`
             handle the runtime fetch event with a safety wrapper
     """
+
+    env: AnalyticsEnvironment
+    ctx: BackgroundContext
 
     async def _handle_fetch(self, request: Request) -> Response:
         """
@@ -1415,10 +1479,18 @@ class Default(WorkerEntrypoint):
 
         try:
             response = await self._handle_fetch(request)
-            return response
-
         except Exception as exc:
             return internal_error_response(exc)
+
+        try:
+            domain = str(getattr(self.env, "PLAUSIBLE_DOMAIN", "") or "")
+            endpoint = str(getattr(self.env, "PLAUSIBLE_ENDPOINT", "") or "")
+            payload = analytics_payload(request, response, domain) if endpoint else None
+            if payload is not None:
+                self.ctx.waitUntil(create_task(send_analytics(request, payload, endpoint)))
+        except Exception as exc:
+            print(f"via analytics unavailable: {type(exc).__name__}")
+        return response
 
 
 Via = Default

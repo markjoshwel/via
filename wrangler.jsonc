@@ -12,6 +12,10 @@
 	],
 	"observability": {
 		"enabled": true
+	},
+	"vars": {
+		"PLAUSIBLE_DOMAIN": "joshwel.co",
+		"PLAUSIBLE_ENDPOINT": "https://pa.joshwel.co/api/event"
 	}
 	/**
 	 * Smart Placement

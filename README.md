@@ -363,6 +363,24 @@ the current dynamic links are:
 
 ## developing
 
+### analytics
+
+The deployed Worker reports successful browser navigation to the shared
+`joshwel.co` Plausible dashboard. It preserves the incoming Via URL so the
+dashboard's Hostname filter can separate Via from other surfaces.
+
+`PLAUSIBLE_DOMAIN` and `PLAUSIBLE_ENDPOINT` in `wrangler.jsonc` enable the
+integration; omit either variable to disable it for another deployment.
+Delivery runs in `ctx.waitUntil` with a three-second timeout. Analytics
+failures do not change or delay the redirect response. The original browser
+user agent, client IP and referrer are forwarded; no cookies or credentials
+are forwarded. `HEAD`, feed requests, prefetches, Git clients, obvious bots
+and requests that do not accept HTML are excluded.
+
+These are visits to Via links, not proof that somebody read the destination.
+Previously cached permanent redirects may not reach the Worker and therefore
+cannot be counted.
+
 this is a **python** cloudflare worker. you will need `node`, `npm`, and `uv`.
 
 the via package is also a command runner for common tasks:
